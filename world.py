@@ -2,15 +2,17 @@
 #TODO: make tiles and brains selectable and show info
 #TODO: limit population size and maintain between bounds
 #TODO: balance systems
-#TODO: change spawn points of brains
 #TODO: make brains pass information when breeding
+
 import sys
 from time import time, sleep
+import pickle
 import pygame
-from random import random
+import os.path
+from random import random, randint
 import brain
 pygame.init()
-
+sys.setrecursionlimit(50000)
 #Colors
 BLACK = (  0,   0,   0)
 WHITE = (255, 255, 255)
@@ -23,6 +25,12 @@ pygame.display.set_caption("Genetics AI")
 fontBig = pygame.font.Font(None, 40)
 fontSmall = pygame.font.Font(None, 16)
 
+def formatID(ID):
+	if (ID < 10):
+		return '0' + str(ID)
+	else:
+		return str(ID)
+
 foodSpawnChance = 0.0005
 class World:
 	def __init__(self):
@@ -34,11 +42,16 @@ class World:
 			self.grid.append(row)
 	
 		self.brains = [None] * 64
-		for i in range(1, 31):
+		for i in range(1, 33):
 			print("Creating brain " + str(i))
-			self.brains[i] = brain.Brain((i-1) % 16, (i-1) // 16, self, i)
+			posX = 4 * ((i-1) % 4)
+			posY = 4 * ((i-1) % 16 // 4)
+			if (i > 16):
+				posX += 2
+				posY += 2
+			self.brains[i] = brain.Brain(posX, posY, self, i)
 			self.brains[i].randomize(10)
-			self.grid[self.brains[i].y][self.brains[i].x].append(self.brains[i])
+			self.grid[posY][posX].append(self.brains[i])
 		
 		self.food = []
 		for y in range(16):
@@ -46,11 +59,35 @@ class World:
 			self.food.append(row)
 			
 	def tick(self):
+		#Food generation
 		for y in range(16):
 			for x in range(16):
 				if (random() < foodSpawnChance):
 					self.food[y][x] += 1
-					
+		
+		#Population limits
+		popCount = 0
+		for b in self.brains:
+			if (b is not None):
+				popCount += 1
+		while (popCount > 50):
+			oldest = 0
+			oldestB = None
+			for b in self.brains:
+				if (b is not None and not b.toKill and b.age > oldest):
+					oldest = b.age
+					oldestB = b
+			oldestB.toKill = True
+			print(formatID(oldestB.ID) + " has passed away")
+			popCount -= 1
+		
+		while (popCount < 10):
+			b = brain.Brain(self, randint(0,15), randint(0,15), 0)
+			self.newBorn(b)
+			print(formatID(b.ID) + " was born by itself")
+			popCount += 1
+		
+		#Updating brains
 		for i in range(len(self.brains)):
 			b = self.brains[i]
 			if (b is not None):
@@ -92,10 +129,7 @@ class World:
 			if (val < 32):
 				val = 32
 			convertedMessage += chr(val)
-		speakerStr = str(speaker)
-		if (speaker < 10):
-			speakerStr = '0' + speakerStr
-		print(speakerStr + " says: " + str(convertedMessage))
+		print(formatID(speaker) + " says: " + str(convertedMessage))
 				
 	def move(self, ID, posX, posY, fromX, fromY):
 		b = self.brains[ID]
@@ -113,20 +147,31 @@ class World:
 		self.grid[b.y][b.x].append(b)
 		
 
+world = None
+
 def load(filename):
-	pass
+	global world
+	if (os.path.isfile(filename)):
+		with open(filename, 'rb') as infile:
+			print("Loading " + filename)
+			world = pickle.load(infile)
+	else:
+		print("File not found. Creating file " + filename)
+		world = World()
+		with open(filename, 'wb') as outfile:
+			pickle.dump(world, outfile, pickle.HIGHEST_PROTOCOL)
 	
 def save(filename):
-	pass
+	with open(filename, 'wb') as outfile:
+			pickle.dump(world, outfile, pickle.HIGHEST_PROTOCOL)
 	
 if (len(sys.argv) < 2):
 	print("Please indicate which world needs to be loaded.")
+	print("Usage: python world.py filename")
 	exit()
 else:
-	print(sys.argv)
 	load(sys.argv[1])
 
-world = World()
 
 offset = 10
 gridSize = 20

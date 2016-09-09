@@ -5,13 +5,18 @@ neuronsWeakeningRate = 0.95
 signalStrengthToFire = 1
 connectionsDecayRate = 0.98
 connectionsStrengtheningRate = 1.05
-newConnectionChance = 0.01
+newConnectionChance = 0.03
 neuronsCount = 500
-hungerRate = 0.0001
+hungerRate = 0.001
 foodEfficiency = 0.3
 agingRate = 0.0000001
-hungerToBreed = 0.5
+hungerToBreed = 0.75
 
+def formatID(ID):
+	if (ID < 10):
+		return '0' + str(ID)
+	else:
+		return str(ID)
 
 class Neuron:
 	def __init__(self):
@@ -222,10 +227,11 @@ class Brain:
 				self.breed()
 
 	def breed(self):
-		self.hunger -= hungerToBreed
+		self.hunger += hungerToBreed
 		b = Brain(self.x, self.y, self.world, 0)
 		#TODO make new brain from parent's brain
 		self.world.newBorn(b)
+		print(formatID(self.ID) + " had a baby")
 	
 	def hearSpeach(self, message, speaker, posX, posY):
 		for i in range(len(message)):
