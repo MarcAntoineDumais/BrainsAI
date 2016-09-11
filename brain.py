@@ -9,7 +9,7 @@ newConnectionChance = 0.03
 neuronsCount = 500
 hungerRate = 0.001
 foodEfficiency = 0.3
-agingRate = 0.0000001
+agingRate = 0.0001
 hungerToBreed = 0.75
 
 def formatID(ID):
@@ -131,11 +131,13 @@ class Brain:
 		self.hunger += hungerRate
 		if (self.hunger >= 1):
 			self.toKill = True
+			print(formatID(self.ID) + " has died of hunger")
 			return
 		if (self.hunger >= 0.1):
 			self.age += agingRate * (3 if self.hunger >= 0.7 else 1)
 		if (self.age >= 1):
 			self.toKill = True
+			print(formatID(self.ID) + " has died of old age")
 			return
 		if (self.tickCount == 0):
 			#world inputs

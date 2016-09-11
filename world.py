@@ -1,6 +1,4 @@
 #TODO: improve efficiency for higher neuron count
-#TODO: make tiles and brains selectable and show info
-#TODO: limit population size and maintain between bounds
 #TODO: balance systems
 #TODO: make brains pass information when breeding
 
@@ -22,8 +20,13 @@ RED =   (255,   0,   0)
 
 screen = pygame.display.set_mode([800, 600])
 pygame.display.set_caption("Genetics AI")
+fontVeryBig = pygame.font.Font(None, 120)
 fontBig = pygame.font.Font(None, 40)
+fontMid = pygame.font.Font(None, 24)
 fontSmall = pygame.font.Font(None, 16)
+
+selectedTile = None
+selectedBrain = None
 
 def formatID(ID):
 	if (ID < 10):
@@ -59,6 +62,7 @@ class World:
 			self.food.append(row)
 			
 	def tick(self):
+		global selectedBrain
 		#Food generation
 		for y in range(16):
 			for x in range(16):
@@ -82,9 +86,10 @@ class World:
 			popCount -= 1
 		
 		while (popCount < 10):
-			b = brain.Brain(self, randint(0,15), randint(0,15), 0)
+			b = brain.Brain(randint(0,15), randint(0,15), self, 0)
+			b.randomize(10)
 			self.newBorn(b)
-			print(formatID(b.ID) + " was born by itself")
+			print(formatID(b.ID) + " was born from the void")
 			popCount += 1
 		
 		#Updating brains
@@ -93,6 +98,9 @@ class World:
 			if (b is not None):
 				b.tick()
 				if (b.toKill):
+					if (b is selectedBrain):
+						selectedBrain = None
+					self.grid[b.y][b.x].remove(b)
 					self.brains[i] = None
 					del b
 					
@@ -145,7 +153,7 @@ class World:
 		b.ID = nextValid
 		self.brains[nextValid] = b
 		self.grid[b.y][b.x].append(b)
-		
+		print(formatID(nextValid) + " was born")
 
 world = None
 
@@ -183,19 +191,44 @@ def pygameLoop():
 	global done
 	global pause
 	global printTicks
+	global selectedTile
+	global selectedBrain
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			done = True
 		elif event.type == pygame.MOUSEBUTTONDOWN:
-			pass
+			#print(event.pos)
+			gridX = (event.pos[0] - offset) // gridSize
+			gridY = (event.pos[1] - offset) // gridSize
+			if (gridX >= 0 and gridX < 16 and gridY >= 0 and gridY < 16):
+				if (selectedTile is None or gridX != selectedTile[0] or gridY != selectedTile[1]):
+					selectedTile = (gridX, gridY)
+			else:
+				unselect = True
+				if (selectedTile is not None):
+					for i in range(len(world.grid[selectedTile[1]][selectedTile[0]])):
+						if (event.pos[0] >= offset + 5 and event.pos[0] < offset + 80 and
+							event.pos[1] >= offset * 3 + gridSize * 16 + 26 * (i+1) + 19 and
+							event.pos[1] < offset * 3 + gridSize * 16 + 26 * (i+1) + 43):
+							selectedBrain = world.grid[selectedTile[1]][selectedTile[0]][i]
+							unselect = False
+						
+				if (unselect):
+					selectedTile = None
+					selectedBrain = None
 		elif event.type == pygame.KEYDOWN:
 			#print(str(event.key))
 			if (event.key == 27): #Esc
-				done = True
+				selectedTile = None
+				selectedBrain = None
 			elif (event.key == 112): #P
 				pause = not pause
 			elif (event.key == 116): #T
 				printTicks = not printTicks
+			elif (event.key == 108): #L
+				if (selectedTile is not None):
+					for b in world.grid[selectedTile[1]][selectedTile[0]]:
+						print(b.ID)
 			
 	screen.fill(WHITE)
 	# map grid
@@ -212,14 +245,56 @@ def pygameLoop():
 	for i in range(len(world.brains)):
 		b = world.brains[i]
 		if (b is not None):
-			strID = fontSmall.render(str(i), True, BLUE)
-			screen.blit(strID, (offset + b.x * gridSize + 3, offset + b.y * gridSize + 3))
+			chosenColor = BLUE
+			if (b is selectedBrain):
+				chosenColor = RED
+			strID = fontSmall.render(str(i), True, chosenColor)
+			screen.blit(strID, (offset + b.x * gridSize + 4, offset + b.y * gridSize + 4))
 			
-	#strPoints = font.render("Number of points: " + str(len(points)), True, BLACK)
-	#screen.blit(strPoints, (10, 10))
-	#pygame.draw.rect(screen, RED, [x-2, y-2, 5, 5])
-	#pygame.draw.circle(screen, RED, [x,y], int(worst), 1)
+	# selected cell
+	if (selectedTile is not None):
+		pygame.draw.rect(screen, RED, [offset + selectedTile[0] * gridSize + 2, offset + selectedTile[1] * gridSize + 2, gridSize - 3, gridSize - 3], 1)
+		strFood = fontMid.render("Food on selected tile: " + str(world.food[selectedTile[1]][selectedTile[0]]), True, BLACK)
+		screen.blit(strFood, (offset, offset * 2 + gridSize * 16))
+		if (len(world.grid[selectedTile[1]][selectedTile[0]]) > 0):
+			strBrainsOnTile = fontMid.render("Brains on selected tile:", True, BLACK)
+			screen.blit(strBrainsOnTile, (offset, offset * 3 + gridSize * 16 + 24))
+			
+			for i in range(len(world.grid[selectedTile[1]][selectedTile[0]])):
+				curID = world.grid[selectedTile[1]][selectedTile[0]][i].ID
+				strSelected = fontMid.render("Brain " + formatID(curID), True, BLUE)
+				screen.blit(strSelected, (offset + 10, offset * 3 + gridSize * 16 + 26 * (i+1) + 24))
+				if (selectedBrain is not None and selectedBrain.ID == curID):
+					pygame.draw.rect(screen, RED, [offset + 5, offset * 3 + gridSize * 16 + 26 * (i+1) + 19, 75, 24], 1)
 	
+	# population statistics
+	totalFood = 0
+	for y in range(16):
+		for x in range(16):
+			totalFood += world.food[y][x]
+	
+	strFood = fontMid.render("Total food in world: " + str(totalFood), True, BLACK)
+	screen.blit(strFood, (offset * 2 + gridSize * 16, offset))
+	totalBrains = 0
+	for b in world.brains:
+		if (b is not None):
+			totalBrains += 1
+	strBrains = fontMid.render("Amount of living brains: " + str(totalBrains), True, BLACK)
+	screen.blit(strBrains, (offset * 2 + gridSize * 16, offset * 2 + 24))
+	
+	# selected brain
+	if (selectedBrain is not None):
+		strSelected = fontMid.render("Selected brain: " + formatID(selectedBrain.ID), True, BLUE)
+		screen.blit(strSelected, (offset * 2 + gridSize * 16, offset * 3 + 48))
+		strSelectedAge = fontMid.render("Age: " + str(round(selectedBrain.age, 4)), True, BLACK)
+		screen.blit(strSelectedAge, (offset * 2 + gridSize * 16, offset * 4 + 72))
+		strSelectedHunger = fontMid.render("Hunger: " + str(round(selectedBrain.hunger, 4)), True, BLACK)
+		screen.blit(strSelectedHunger, (offset * 2 + gridSize * 16, offset * 5 + 96))
+	
+	# Pause indicator
+	if (pause):
+		strPause = fontVeryBig.render("Paused", True, (120, 120, 120))
+		screen.blit(strPause, (offset + 10, offset + 120))
 	pygame.display.flip()
 
 FPS = 20
