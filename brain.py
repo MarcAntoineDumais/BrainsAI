@@ -1,16 +1,16 @@
 import math
-from random import random
+from random import random, randint
 ticksBetweenPerception = 5
 neuronsWeakeningRate = 0.95
 signalStrengthToFire = 1
-connectionsDecayRate = 0.98
-connectionsStrengtheningRate = 1.05
-newConnectionChance = 0.03
+connectionsDecayRate = 0.99
+connectionsStrengtheningRate = 1.2
+newConnectionChance = 0.1
 neuronsCount = 500
 hungerRate = 0.001
-foodEfficiency = 0.3
+foodEfficiency = 0.2
 agingRate = 0.0001
-hungerToBreed = 0.75
+hungerToBreed = 0.9
 
 def formatID(ID):
 	if (ID < 10):
@@ -19,17 +19,26 @@ def formatID(ID):
 		return str(ID)
 
 class Neuron:
-	def __init__(self):
+	def __init__(self, brain):
 		self.connections = []
 		self.signalLevel = 0
 		self.state = 0
 		self.toAdd = 0
+		self.brain = brain
 		
 	def fire(self):
 		for c in self.connections:
 			if (c.neuron.state == 0):
 				c.neuron.toAdd += c.strength
 			c.changeStrength(min(c.strength * connectionsStrengtheningRate, 1))
+		if (random() < newConnectionChance):
+			chosenNeuron = None
+			while (chosenNeuron is None):
+				chosenNeuron = self.brain.neurons[randint(0, len(self.brain.neurons)-1)]
+				for c in self.connections:
+					if (c.neuron is chosenNeuron):
+						chosenNeuron = None
+			self.connections.append(Connection(chosenNeuron, 0.5))
 			
 	def tick(self):
 		for c in self.connections:
@@ -85,6 +94,14 @@ class Brain:
 	sizeOutputBreeding = 1
 	numberOfOutputNeurons = indexOutputBreeding + sizeOutputBreeding
 	
+	def outputInfo(self):
+		totalNeurons = 0
+		totalConnections = 0
+		for n in self.inputNeurons:
+			totalNeurons += 1
+			totalConnections += len(n.connections[0].neuron.connections)
+		print(str(totalNeurons) + " neurons with " + str(totalConnections) + " connections")
+	
 	def __init__(self, posX, posY, world, ID):
 		self.tickCount = 0
 		self.tickAge = 0
@@ -98,16 +115,16 @@ class Brain:
 		
 		self.neurons = []
 		for i in range(neuronsCount):
-			self.neurons.append(Neuron())
+			self.neurons.append(Neuron(self))
 		
 		self.inputNeurons = []
 		for i in range(Brain.numberOfInputNeurons):
-			self.inputNeurons.append(Neuron())
+			self.inputNeurons.append(Neuron(self))
 			self.inputNeurons[i].connections.append(Connection(self.neurons[i], 1))
 			
 		self.outputNeurons = []
 		for i in range(Brain.numberOfOutputNeurons):
-			self.outputNeurons.append(Neuron())
+			self.outputNeurons.append(Neuron(self))
 			self.neurons[Brain.numberOfInputNeurons + i].connections.append(Connection(self.outputNeurons[i], 1))
 			
 	def randomize(self, intensity):
@@ -133,8 +150,7 @@ class Brain:
 			self.toKill = True
 			print(formatID(self.ID) + " has died of hunger")
 			return
-		if (self.hunger >= 0.1):
-			self.age += agingRate * (3 if self.hunger >= 0.7 else 1)
+		self.age += agingRate * (3 if self.hunger >= 0.7 else 1)
 		if (self.age >= 1):
 			self.toKill = True
 			print(formatID(self.ID) + " has died of old age")

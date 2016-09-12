@@ -75,7 +75,7 @@ class World:
 			if (b is not None):
 				popCount += 1
 		while (popCount > 50):
-			oldest = 0
+			oldest = -1
 			oldestB = None
 			for b in self.brains:
 				if (b is not None and not b.toKill and b.age > oldest):
@@ -197,25 +197,25 @@ def pygameLoop():
 		if event.type == pygame.QUIT:
 			done = True
 		elif event.type == pygame.MOUSEBUTTONDOWN:
-			#print(event.pos)
-			gridX = (event.pos[0] - offset) // gridSize
-			gridY = (event.pos[1] - offset) // gridSize
-			if (gridX >= 0 and gridX < 16 and gridY >= 0 and gridY < 16):
-				if (selectedTile is None or gridX != selectedTile[0] or gridY != selectedTile[1]):
-					selectedTile = (gridX, gridY)
-			else:
-				unselect = True
-				if (selectedTile is not None):
-					for i in range(len(world.grid[selectedTile[1]][selectedTile[0]])):
-						if (event.pos[0] >= offset + 5 and event.pos[0] < offset + 80 and
-							event.pos[1] >= offset * 3 + gridSize * 16 + 26 * (i+1) + 19 and
-							event.pos[1] < offset * 3 + gridSize * 16 + 26 * (i+1) + 43):
-							selectedBrain = world.grid[selectedTile[1]][selectedTile[0]][i]
-							unselect = False
-						
-				if (unselect):
-					selectedTile = None
-					selectedBrain = None
+			if (event.button == 1):
+				gridX = (event.pos[0] - offset) // gridSize
+				gridY = (event.pos[1] - offset) // gridSize
+				if (gridX >= 0 and gridX < 16 and gridY >= 0 and gridY < 16):
+					if (selectedTile is None or gridX != selectedTile[0] or gridY != selectedTile[1]):
+						selectedTile = (gridX, gridY)
+				else:
+					unselect = True
+					if (selectedTile is not None):
+						for i in range(len(world.grid[selectedTile[1]][selectedTile[0]])):
+							if (event.pos[0] >= offset + 5 and event.pos[0] < offset + 80 and
+								event.pos[1] >= offset * 3 + gridSize * 16 + 26 * (i+1) + 19 and
+								event.pos[1] < offset * 3 + gridSize * 16 + 26 * (i+1) + 43):
+								selectedBrain = world.grid[selectedTile[1]][selectedTile[0]][i]
+								unselect = False
+							
+					if (unselect):
+						selectedTile = None
+						selectedBrain = None
 		elif event.type == pygame.KEYDOWN:
 			#print(str(event.key))
 			if (event.key == 27): #Esc
@@ -229,6 +229,9 @@ def pygameLoop():
 				if (selectedTile is not None):
 					for b in world.grid[selectedTile[1]][selectedTile[0]]:
 						print(b.ID)
+			elif (event.key == 111):
+				if (selectedBrain is not None):
+					selectedBrain.outputInfo()
 			
 	screen.fill(WHITE)
 	# map grid
