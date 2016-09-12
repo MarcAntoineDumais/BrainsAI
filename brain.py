@@ -10,7 +10,7 @@ neuronsCount = 500
 hungerRate = 0.001
 foodEfficiency = 0.2
 agingRate = 0.0001
-hungerToBreed = 0.9
+hungerToBreed = 0.75
 
 def formatID(ID):
 	if (ID < 10):
@@ -19,12 +19,13 @@ def formatID(ID):
 		return str(ID)
 
 class Neuron:
-	def __init__(self, brain):
+	def __init__(self, brain, index):
 		self.connections = []
 		self.signalLevel = 0
 		self.state = 0
 		self.toAdd = 0
 		self.brain = brain
+		self.index = index
 		
 	def fire(self):
 		for c in self.connections:
@@ -107,7 +108,7 @@ class Brain:
 		self.tickAge = 0
 		self.x = posX
 		self.y = posY
-		self.hunger = 0
+		self.hunger = 0.5
 		self.age = 0
 		self.toKill = False
 		self.world = world
@@ -115,16 +116,16 @@ class Brain:
 		
 		self.neurons = []
 		for i in range(neuronsCount):
-			self.neurons.append(Neuron(self))
+			self.neurons.append(Neuron(self, i))
 		
 		self.inputNeurons = []
 		for i in range(Brain.numberOfInputNeurons):
-			self.inputNeurons.append(Neuron(self))
+			self.inputNeurons.append(Neuron(self, i))
 			self.inputNeurons[i].connections.append(Connection(self.neurons[i], 1))
 			
 		self.outputNeurons = []
 		for i in range(Brain.numberOfOutputNeurons):
-			self.outputNeurons.append(Neuron(self))
+			self.outputNeurons.append(Neuron(self, neuronsCount + i))
 			self.neurons[Brain.numberOfInputNeurons + i].connections.append(Connection(self.outputNeurons[i], 1))
 			
 	def randomize(self, intensity):
@@ -244,12 +245,25 @@ class Brain:
 			if (self.hunger < 1 - hungerToBreed):
 				self.breed()
 
+	def clearConnections(self):
+		for n in self.neurons:
+			del n.connections[:]
+
 	def breed(self):
 		self.hunger += hungerToBreed
 		b = Brain(self.x, self.y, self.world, 0)
-		#TODO make new brain from parent's brain
-		self.world.newBorn(b)
+		b.clearConnections()
 		print(formatID(self.ID) + " had a baby")
+		self.world.newBorn(b)
+		for i in range(len(self.neurons)):
+			for c in self.neurons[i].connections:
+				target = None
+				if (c.neuron.index < neuronsCount):
+					target = b.neurons[c.neuron.index]
+				else:
+					target = b.outputNeurons[c.neuron.index - neuronsCount]
+				b.neurons[i].connections.append(Connection(target, c.strength))
+		b.randomize(1)
 	
 	def hearSpeach(self, message, speaker, posX, posY):
 		for i in range(len(message)):

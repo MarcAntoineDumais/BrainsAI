@@ -1,6 +1,7 @@
 #TODO: improve efficiency for higher neuron count
 #TODO: balance systems
-#TODO: make brains pass information when breeding
+#TODO: print  commands on screen
+#TODO: add buttons to toggle speach and births/deaths
 
 import sys
 from time import time, sleep
