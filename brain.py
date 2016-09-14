@@ -253,7 +253,7 @@ class Brain:
 		self.hunger += hungerToBreed
 		b = Brain(self.x, self.y, self.world, 0)
 		b.clearConnections()
-		print(formatID(self.ID) + " had a baby")
+		#print(formatID(self.ID) + " had a baby")
 		self.world.newBorn(b)
 		for i in range(len(self.neurons)):
 			for c in self.neurons[i].connections:

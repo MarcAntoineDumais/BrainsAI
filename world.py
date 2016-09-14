@@ -1,7 +1,5 @@
 #TODO: improve efficiency for higher neuron count
 #TODO: balance systems
-#TODO: print  commands on screen
-#TODO: add buttons to toggle speach and births/deaths
 
 import sys
 from time import time, sleep
@@ -28,6 +26,9 @@ fontSmall = pygame.font.Font(None, 16)
 
 selectedTile = None
 selectedBrain = None
+printTicks = False
+printChat = True
+printMessages = True
 
 def formatID(ID):
 	if (ID < 10):
@@ -83,14 +84,16 @@ class World:
 					oldest = b.age
 					oldestB = b
 			oldestB.toKill = True
-			print(formatID(oldestB.ID) + " has passed away")
+			if (printMessages):
+				print(formatID(oldestB.ID) + " has passed away")
 			popCount -= 1
 		
 		while (popCount < 10):
 			b = brain.Brain(randint(0,15), randint(0,15), self, 0)
 			b.randomize(10)
 			self.newBorn(b)
-			print(formatID(b.ID) + " was born from the void")
+			if (printMessages):
+				print(formatID(b.ID) + " was born from the void")
 			popCount += 1
 		
 		#Updating brains
@@ -132,13 +135,14 @@ class World:
 			if (self.brains[i] is not None and i != speaker):
 				self.brains[i].hearSpeach(message, speaker, posX, posY)
 				
-		convertedMessage = ""
-		for i in range(20):
-			val = int(message[7*i:7*(i+1)], 2)
-			if (val < 32):
-				val = 32
-			convertedMessage += chr(val)
-		print(formatID(speaker) + " says: " + str(convertedMessage))
+		if (printChat):
+			convertedMessage = ""
+			for i in range(20):
+				val = int(message[7*i:7*(i+1)], 2)
+				if (val < 32):
+					val = 32
+				convertedMessage += chr(val)
+			print(formatID(speaker) + " says: " + str(convertedMessage))
 				
 	def move(self, ID, posX, posY, fromX, fromY):
 		b = self.brains[ID]
@@ -154,7 +158,8 @@ class World:
 		b.ID = nextValid
 		self.brains[nextValid] = b
 		self.grid[b.y][b.x].append(b)
-		print(formatID(nextValid) + " was born")
+		if (printMessages):
+			print(formatID(nextValid) + " was born")
 
 world = None
 
@@ -187,13 +192,14 @@ gridSize = 20
 
 done = False
 pause = True
-printTicks = False
 def pygameLoop():
 	global done
 	global pause
 	global printTicks
 	global selectedTile
 	global selectedBrain
+	global printChat
+	global printMessages
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
 			done = True
@@ -226,13 +232,13 @@ def pygameLoop():
 				pause = not pause
 			elif (event.key == 116): #T
 				printTicks = not printTicks
-			elif (event.key == 108): #L
-				if (selectedTile is not None):
-					for b in world.grid[selectedTile[1]][selectedTile[0]]:
-						print(b.ID)
-			elif (event.key == 111):
-				if (selectedBrain is not None):
-					selectedBrain.outputInfo()
+			#elif (event.key == 111): #O
+			#	if (selectedBrain is not None):
+			#		selectedBrain.outputInfo()
+			elif (event.key == 109): #M
+				printMessages = not printMessages
+			elif (event.key == 99): #C
+				printChat = not printChat
 			
 	screen.fill(WHITE)
 	# map grid
@@ -299,7 +305,13 @@ def pygameLoop():
 	if (pause):
 		strPause = fontVeryBig.render("Paused", True, (120, 120, 120))
 		screen.blit(strPause, (offset + 10, offset + 120))
+	
+	# Instructions
+	strInstructions = fontSmall.render("Esc: Cancel selection   P: Pause   T: Show ticks   M: Show messages   C: Show brain speech", True, (120, 120, 120))
+	screen.blit(strInstructions, (offset + 150, 600 - offset - 24))
+	
 	pygame.display.flip()
+	
 
 FPS = 20
 delay = 1 / FPS
