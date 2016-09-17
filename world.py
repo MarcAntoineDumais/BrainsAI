@@ -112,16 +112,14 @@ class World:
 		return self.food[y][x] >= 1
 	
 	def foodNearby(self, x, y):
-		foodTotal = self.food[y][x]
-		foodTotal += self.food[y-1 if y!=0 else 15][x-1 if x!=0 else 15]
-		foodTotal += self.food[y-1 if y!=0 else 15][x]
-		foodTotal += self.food[y-1 if y!=0 else 15][x+1 if x!=15 else 0]
-		foodTotal += self.food[y][x-1 if x!=0 else 15]
-		foodTotal += self.food[y][x+1 if x!=15 else 0]
-		foodTotal += self.food[y+1 if y!=15 else 0][x-1 if x!=0 else 15]
-		foodTotal += self.food[y+1 if y!=15 else 0][x]
-		foodTotal += self.food[y+1 if y!=15 else 0][x+1 if x!=15 else 0]
-		return foodTotal >= 1
+		return self.food[y][x] or self.food[y-1 if y!=0 else 15][x-1 if x!=0 else 15] or\
+								self.food[y-1 if y!=0 else 15][x] or\
+								self.food[y-1 if y!=0 else 15][x+1 if x!=15 else 0] or\
+								self.food[y][x-1 if x!=0 else 15] or\
+								self.food[y][x+1 if x!=15 else 0] or\
+								self.food[y+1 if y!=15 else 0][x-1 if x!=0 else 15] or\
+								self.food[y+1 if y!=15 else 0][x] or\
+								self.food[y+1 if y!=15 else 0][x+1 if x!=15 else 0]
 		
 	def eat(self, x, y):
 		if (self.foodOnCell(x, y)):
@@ -232,9 +230,9 @@ def pygameLoop():
 				pause = not pause
 			elif (event.key == 116): #T
 				printTicks = not printTicks
-			#elif (event.key == 111): #O
-			#	if (selectedBrain is not None):
-			#		selectedBrain.outputInfo()
+			elif (event.key == 111): #O
+				if (selectedBrain is not None):
+					selectedBrain.outputInfo()
 			elif (event.key == 109): #M
 				printMessages = not printMessages
 			elif (event.key == 99): #C
@@ -317,13 +315,18 @@ FPS = 20
 delay = 1 / FPS
 lastTime = time()
 tickCount = 0
+times = []
 while not done:
 	if (not pause):
+		t = time()
 		world.tick()
-	if (time() - lastTime > delay):
 		tickCount += 1
+		times.append(time() - t)
+		if (len(times) > 5):
+			times = times[-5:]
 		if (printTicks):
-			print("Tick " + str(tickCount))
+			print("Tick " + str(tickCount) + "  avg: " + str(sum(times) / 5))
+	if (time() - lastTime > delay):
 		pygameLoop()
 		if (pause):
 			sleep(delay)

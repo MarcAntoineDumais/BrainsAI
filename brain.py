@@ -26,6 +26,7 @@ class Neuron:
 		self.toAdd = 0
 		self.brain = brain
 		self.index = index
+		self.speechFire = False
 		
 	def fire(self):
 		for c in self.connections:
@@ -96,12 +97,14 @@ class Brain:
 	numberOfOutputNeurons = indexOutputBreeding + sizeOutputBreeding
 	
 	def outputInfo(self):
-		totalNeurons = 0
+		'''totalNeurons = 0
 		totalConnections = 0
 		for n in self.inputNeurons:
 			totalNeurons += 1
 			totalConnections += len(n.connections[0].neuron.connections)
-		print(str(totalNeurons) + " neurons with " + str(totalConnections) + " connections")
+		print(str(totalNeurons) + " neurons with " + str(totalConnections) + " connections")'''
+		print(self.eatingCount)
+		
 	
 	def __init__(self, posX, posY, world, ID):
 		self.tickCount = 0
@@ -113,6 +116,7 @@ class Brain:
 		self.toKill = False
 		self.world = world
 		self.ID = ID
+		self.eatingCount = 0
 		
 		self.neurons = []
 		for i in range(neuronsCount):
@@ -159,7 +163,7 @@ class Brain:
 		if (self.tickCount == 0):
 			#world inputs
 			#position input
-			posX = bin(self.x)[2:]
+			'''posX = bin(self.x)[2:]
 			while (len(posX) < 4):
 				posX = "0" + posX
 			posY = bin(self.y)[2:]
@@ -169,6 +173,21 @@ class Brain:
 			for i in range(len(posInput)):
 				if (posInput[i] == '1'):
 					self.inputNeurons[Brain.indexInputPosition + i].fire()
+			'''
+			for i in range(Brain.indexInputSpeech, Brain.indexInputDistance + Brain.sizeInputDistance):
+				if (self.inputNeurons[i].speechFire):
+					self.inputNeurons[i].fire()
+					self.inputNeurons[i].speechFire = False
+			
+			if (self.x & 1):
+				self.inputNeurons[Brain.indexInputPosition + 3].fire()
+			if (self.x & 2):
+				self.inputNeurons[Brain.indexInputPosition + 2].fire()
+			if (self.x & 4):
+				self.inputNeurons[Brain.indexInputPosition + 1].fire()
+			if (self.x & 8):
+				self.inputNeurons[Brain.indexInputPosition + 0].fire()
+			
 			#other inputs
 			if (self.hunger >= 0.6):
 				self.inputNeurons[Brain.indexInputHunger].fire()
@@ -235,6 +254,7 @@ class Brain:
 		if (n.signalLevel >= signalStrengthToFire):
 			n.signalLevel = 0
 			if (self.world.eat, self.x, self.y):
+				self.eatingCount += 1
 				self.hunger -= foodEfficiency
 				if (self.hunger < 0):
 					self.hunger = 0
@@ -268,13 +288,13 @@ class Brain:
 	def hearSpeach(self, message, speaker, posX, posY):
 		for i in range(len(message)):
 			if (message[i] == '1'):
-				self.inputNeurons[Brain.indexInputSpeech + i].fire()
+				self.inputNeurons[Brain.indexInputSpeech + i].speechFire = True
 		speaker = bin(speaker)[2:]
 		while (len(speaker) < Brain.sizeInputRecognition):
 			speaker = '0' + speaker
 		for i in range(Brain.sizeInputRecognition):
 			if (speaker[i] == '1'):
-				self.inputNeurons[Brain.indexInputRecognition + i].fire()
+				self.inputNeurons[Brain.indexInputRecognition + i].speechFire = True
 		dx = abs(posX - self.x)
 		dx = min(dx, 16 - dx)
 		dy = abs(posY - self.y)
@@ -285,4 +305,4 @@ class Brain:
 			dist = '0' + dist
 		for i in range(Brain.sizeInputDistance):
 			if (dist[i] == '1'):
-				self.inputNeurons[Brain.indexInputDistance + i].fire()
+				self.inputNeurons[Brain.indexInputDistance + i].speechFire = True
